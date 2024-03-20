@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<note version="0.3" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size" xmlns="http://beatniksoftware.com/tomboy"><title>KFS 1</title><text xml:space="preserve"><note-content version="0.1" xmlns:link="http://beatniksoftware.com/tomboy/link" xmlns:size="http://beatniksoftware.com/tomboy/size">KFS 1
+
+Objective: Write a mini kernel (10 MB) that just displays text to the screen.
+
+To answer problematic : 
+	1- We write code that we want to be executed. Remember that you are ring 0, so no abstract layers and libraries are available. (like memory allocation and so on...)
+
+	2- Our code must be compiled AND NOT LINKED YET without any dependencies (so we must use raw instructions / legacy BIOS interrupt) : if in C
+
+	3- Our program must accept multibooting by Grub (dynamic loading?) : Add an ASM code to make the kernel handles multiboot hdr 
+
+	4- The program must be bootable using the linker script :  Meaning it has to be loaded at specific addresses and understood by the bootloader (GRUB)
+
+<italic>NOTE: a. The GRUB bootloader interprets ELF format</italic>
+		<italic>b. We do need to build a cross compiler that will not add host header and libraries references. (Potentially you could use GCC, which is not adviced, and use flags that will indicates the compiler to not use exisiting libraries and stuff)  
+</italic>
+<italic>Refs: <link:url>https://wiki.osdev.org/Bare_Bones</link:url></italic><italic> : (Compile C in ASM, Assemble ASM to object code, Link object code to ELF binary)</italic>
+
+How to each steps
+1- 	C: 		
+	ASM: 	use BIOS interrupt to interact with the screen to display 42 : problem is 32-bit protected mode that enables the bootloader to protect the BIOS. 
+			.
+			.
+			.
+
+2- Building your cross-compiler in order to control the way references are made to symbols, and to not add link to exisiting on host references (libs, hdrs...).
+To do so we will use gcc at the newest version available. </note-content>
+</text><last-change-date>2024-03-20T15:55:26.213951Z</last-change-date><last-metadata-change-date>2024-03-20T15:55:26.214202Z</last-metadata-change-date><create-date>2024-03-19T12:53:59.287445Z</create-date><cursor-position>332</cursor-position><selection-bound-position>-1</selection-bound-position><width>0</width><height>0</height></note>
+
