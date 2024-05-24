@@ -48,3 +48,6 @@ bin: $(OS_BIN_NAME)
 
 multiboot: bin
 	@sh test_multiboot.sh
+
+exec: bin
+	qemu-system-i386 -kernel $(OS_BIN_NAME)
