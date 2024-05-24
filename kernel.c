@@ -12,7 +12,10 @@
 #if !defined(__i386__)
 #error "This tutorial needs to be compiled with a ix86-elf compiler"
 #endif
- 
+
+void set_cursor(int offset);
+int get_cursor();
+
 /* Hardware text mode color constants. */
 enum vga_color {
 	VGA_COLOR_BLACK = 0,
@@ -32,12 +35,52 @@ enum vga_color {
 	VGA_COLOR_LIGHT_BROWN = 14,
 	VGA_COLOR_WHITE = 15,
 };
- 
+
+#define VGA_CTRL_REGISTER 	0x3d4
+#define VGA_DATA_REGISTER 	0x3d5
+#define VGA_OFFSET_LOW 		0x0f
+#define VGA_OFFSET_HIGH 	0x0e
+
+
+// Copies value from DX :-> port ==> AL :-> result . READS THE PORT
+unsigned char port_byte_in(unsigned short port) {
+    unsigned char result;
+    __asm__("in %%dx, %%al" : "=a" (result) : "d" (port));
+    return result;
+}
+
+// Copies value from AL :-> data ==> DX :-> port . WRITES THE PORT
+void port_byte_out(unsigned short port, unsigned char data) {
+    __asm__("out %%al, %%dx" : : "a" (data), "d" (port));
+}
+
+
+void set_cursor(int offset) {
+   offset /= 2;
+/* The index is already a position in a uint16_t * array */
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
+    port_byte_out(VGA_DATA_REGISTER, (unsigned char) (offset >> 8));
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
+    port_byte_out(VGA_DATA_REGISTER, (unsigned char) (offset & 0xff));
+}
+
+int get_cursor() {
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);
+    int offset = port_byte_in(VGA_DATA_REGISTER) << 8;
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);
+    offset += port_byte_in(VGA_DATA_REGISTER);
+	offset *= 2;
+/* The index is already a position in a uint16_t * array */
+	return offset;
+}
+
+
 static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) 
 {
 	return fg | bg << 4;
 }
  
+
 static inline uint16_t vga_entry(unsigned char uc, uint8_t color) 
 {
 	return (uint16_t) uc | (uint16_t) color << 8;
@@ -72,7 +115,7 @@ void terminal_initialize(void)
 		}
 	}
 }
- 
+
 void terminal_setcolor(uint8_t color) 
 {
 	terminal_color = color;
@@ -83,26 +126,44 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 	const size_t index = y * VGA_WIDTH + x;
 	terminal_buffer[index] = vga_entry(c, color);
 }
- 
-void terminal_putchar(char c) 
+// void terminal_putchar(char c) 
+int terminal_putchar(char c) 
 {
-	terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
-	if (++terminal_column == VGA_WIDTH) {
+	/* Newline management */
+	if (c == '\n') {
 		terminal_column = 0;
 		if (++terminal_row == VGA_HEIGHT)
 			terminal_row = 0;
+	} else {
+		terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
+		if (++terminal_column == VGA_WIDTH) {
+			terminal_column = 0;
+		/* Scrolling management */
+			if (++terminal_row == VGA_HEIGHT)
+				terminal_row = 0;
+		}
 	}
+	
+	/* Cursor management */
+	return terminal_row * VGA_WIDTH + terminal_column;
 }
  
-void terminal_write(const char* data, size_t size) 
+void terminal_write(const char* data, size_t size, int cursor_offset) 
 {
-	for (size_t i = 0; i < size; i++)
-		terminal_putchar(data[i]);
+	size_t i = 0;
+	
+	for (i = 0; i < size; i++) {
+		cursor_offset = terminal_putchar(data[i]);
+	}
+	set_cursor(cursor_offset * 2);
 }
- 
+
+
 void terminal_writestring(const char* data) 
 {
-	terminal_write(data, strlen(data));
+	int cursor_offset = 0;
+
+	terminal_write(data, strlenk(data), cursor_offset);
 }
  
 void kernel_main(void) 
@@ -111,5 +172,7 @@ void kernel_main(void)
 	terminal_initialize();
  
 	/* Newline support is left as an exercise. */
-	terminal_writestring("Hello, kernel World!\n");
+	// terminal_writestring("Hello, kernel World!\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\ntotooookokoko\n");
+	terminal_writestring("Hello, kernel World!\n1\n2\n3\n4\n5\n6\n7\n8\n9\nA\nB\nC\nD\nE\nF\n10\n11\n12\n13\n14\n15\n16\n17\n18\n01234567890123456789012345678901234567890123456789012345678901234567890123456789");
+	// terminal_writestring("Hello, kernel World!\nOui ca va merci");
 }
